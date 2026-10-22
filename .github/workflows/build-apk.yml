@@ -1,0 +1,62 @@
+name: Build and Release PRitsme APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+
+    - name: Build Release APK
+      run: |
+        chmod +x gradlew || true
+        gradle assembleRelease --stacktrace
+
+    - name: Rename APK
+      run: |
+        cp app/build/outputs/apk/release/app-release.apk PRitsme.apk || cp app/build/outputs/apk/release/app-release-unsigned.apk PRitsme.apk
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PRitsme-APK
+        path: PRitsme.apk
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+      with:
+        tag_name: v1.0.0
+        name: "PRitsme v1.0.0 — Official Offline Hub Release"
+        body: |
+          🚀 **PRitsme — Автономная экосистема и хаб Pixel Royale (v1.0.0)**
+          
+          ✨ **Что нового:**
+          • **100% Offline / Zero-HTTPS:** Все расписания, звуковые сигналы и виброотклик работают прямо на телефоне.
+          • **10-Минутный кулдаун запроса карты:** Кнопка с динамическим таймером и кольцом охлаждения против спама.
+          • **Встроенная тактическая карта:** Мгновенный просмотр карты секторов и 23 регионов без интернета.
+          • **Прямая интеграция с Telegram:** Быстрый переход в @ndjdhfbdbs_bot, @PBMap_bot и группу Союз Е-Р-О-П (-1003949456661).
+          • **Современный Bento Grid интерфейс:** Тёмная тема в стиле YouTube и TikTok.
+        files: |
+          PRitsme.apk
+          app/src/main/assets/index.html
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
